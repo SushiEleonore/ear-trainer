@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Music Hearing Test</title>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+<body>
+    <div id="landing">
+        <h1>Music Hearing Test</h1>
+        <button id="start-button">Start</button>
+        <div id="selection">
+            <input type="radio" id="random-mode" name="mode" checked onclick="updateMode('random')"> Random mode<br>
+            <input type="radio" id="specific-mode" name="mode" onclick="updateMode('specific')"> Specific mode
+            <select id="interval-select">
+                <option value="1" data-interval="2.00">Tone</option>
+                <option value="0.5" data-interval="1.00">Half tone</option>
+                <option value="0.25" data-interval="0.50">Quarter tone</option>
+                <option value="0.125" data-interval="0.25">1/8th tone</option>
+                <option value="0.0625" data-interval="0.125">1/16th tone</option>
+                <option value="0.04" data-interval="0.08">1/25th tone</option>
+                <option value="0.02" data-interval="0.04">1/50th tone</option>
+                <option value="0.01" data-interval="0.02">1/100th tone</option>
+                <option value="0.005" data-interval="0.01">1/200th tone</option>
+                <option value="0.0025" data-interval="0.005">1/400th tone</option>
+            </select>            
+        </div>
+    </div>
+
+    <div id="test" style="display: none;">
+        <button id="play-button">
+            <span id="countdown">3</span>
+            <span id="speaker-icon" style="display: none;">🔊</span>
+        </button>
+        <div id="answers" style="display: none;">
+            <button id="lower-button">↘</button>
+            <button id="same-button">=</button>
+            <button id="higher-button">↗</button>
+        </div>
+        <div id="result" style="display: none;">
+            <span id="correct" style="display: none;">✅</span>
+            <span id="wrong" style="display: none;">❌</span>
+            <span id="correct-answer"></span>
+            <span id="interval-display" style="display: none;"></span>
+            <button id="next-button">Next</button>
+        </div>
+        <div id="score">Your score: 0/0</div>
+        <button id="main-menu-button">Main Menu</button>
+    </div>
+</body>
+
+<script>
+window.onload = function() {
+    // JavaScript functionality here
+    // use the Web Audio API to generate the sine waves
+    // create functions to handle the countdown, playing the notes, checking the answer, etc.
+    // bind these functions to the appropriate events, such as button clicks
+
+    var audioContext;
+    var note1Frequency;
+    var note2Frequency;
+    var correctAnswer;
+    var totalQuestions = 0;
+    var correctAnswers = 0;
+    var interval;
+    var lowerButton = document.getElementById('lower-button');
+    var sameButton = document.getElementById('same-button');
+    var higherButton = document.getElementById('higher-button');
+    var nextButton = document.getElementById('next-button');
+    var correctSpan = document.getElementById('correct');
+    var wrongSpan = document.getElementById('wrong');
+    var correctAnswerSpan = document.getElementById('correct-answer');
+    var intervalDisplay = document.getElementById('interval-display');
+
+    lowerButton.addEventListener('click', function() {
+        evaluateAnswer('lower');
+    });
+
+    sameButton.addEventListener('click', function() {
+        evaluateAnswer('same');
+    });
+
+    higherButton.addEventListener('click', function() {
+        evaluateAnswer('higher');
+    });
+
+    function evaluateAnswer(userGuess) {
+        // Hide the answer buttons
+        document.getElementById('answers').style.display = 'none';
+
+        // Increase the totalQuestions count
+        totalQuestions++;
+        // Check if the user's guess matches the actual answer
+        if (userGuess === correctAnswer) {
+            correctSpan.style.display = 'block';
+            wrongSpan.style.display = 'none';
+            correctAnswerSpan.textContent = 'Correct! The answer was: ' + correctAnswer;
+            // Increase the correctAnswers count
+            correctAnswers++;
+        } else {
+            correctSpan.style.display = 'none';
+            wrongSpan.style.display = 'block';
+            correctAnswerSpan.textContent = 'Wrong! The answer was: ' + correctAnswer;
+        }
+
+        // Show the interval (precision) when in Random Mode //
+        if (document.getElementById('random-mode').checked && correctAnswer !== 'same') {
+            intervalDisplay.textContent = 'The interval was: ' + interval + ' tone';
+            intervalDisplay.style.display = 'block';
+        } else {
+            intervalDisplay.style.display = 'none';
+        }
+
+        // Show the next button
+        nextButton.style.display = 'block';
+        document.getElementById('result').style.display = 'block';  // Make sure the result is visible
+
+        // Update score
+        document.getElementById('score').textContent = 'Your score: ' + correctAnswers + '/' + totalQuestions;
+    }
+
+    function updateMode(mode) {
+        var randomMode = document.getElementById('random-mode');
+        var specificMode = document.getElementById('specific-mode');
+        
+        if (mode === 'random') {
+            specificMode.checked = !randomMode.checked;
+        } else if (mode === 'specific') {
+            randomMode.checked = !specificMode.checked;
+        }
+    }
+
+    function playSineWave(frequency, duration) {
+        var oscillator = audioContext.createOscillator();
+        oscillator.type = 'sine';
+        oscillator.frequency.value = frequency;
+        oscillator.connect(audioContext.destination);
+        oscillator.start();
+
+        // Stop the oscillator after the duration
+        setTimeout(function() {
+            oscillator.stop();
+        }, duration);
+    }
+
+    function getSelectedInterval() {
+        var selectElement = document.getElementById('interval-select');
+        if(document.getElementById('random-mode').checked) {
+            var options = selectElement.options;
+            var randomOption = options[Math.floor(Math.random() * options.length)];
+            return parseFloat(randomOption.getAttribute('data-interval'));
+        } else {
+            var selectedOption = selectElement.options[selectElement.selectedIndex];
+            return parseFloat(selectedOption.getAttribute('data-interval'));
+        }
+    }
+
+
+    function generateNotes() {
+        // Generate the first note's frequency randomly
+        note1Frequency = 440;  // Change this to generate the frequency randomly within the desired range
+
+        // Decide whether the second note will be the same, higher, or lower
+        var randomNumber = Math.floor(Math.random() * 3) + 1;
+
+        // Define the ratio and the interval
+        var ratio = Math.pow(2, 1/12);  // The 12th root of 2
+        // 1 for tone, 0.5 for half a tone, etc.
+        interval = getSelectedInterval();  // Get the interval from the selected option;
+
+        if (randomNumber === 1) {
+            // The notes are the same
+            note2Frequency = note1Frequency;
+            correctAnswer = 'same';
+        } else if (randomNumber === 2) {
+            // The second note is higher
+            note2Frequency = note1Frequency * Math.pow(ratio, interval);
+            correctAnswer = 'higher';
+        } else {
+            // The second note is lower
+            note2Frequency = note1Frequency / Math.pow(ratio, interval);
+            correctAnswer = 'lower';
+        }
+    }
+
+
+    function playNotes() {
+        // Initialize audioContext here
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        // Play the first note
+        playSineWave(note1Frequency, 1000);
+
+        // Wait for 1.5 seconds (the duration of the first note plus the half-second pause) then play the second note
+        setTimeout(function() {
+            playSineWave(note2Frequency, 1000);
+        }, 1500);
+    }
+
+    function displayAnswerButtons() {
+        // Show the "higher", "same" and "lower" buttons after the notes are played
+        setTimeout(function() {
+                document.getElementById('answers').style.display = 'block';
+            }, 3500);  // Wait for the duration of both notes plus the pause (1 second + 1.5 seconds + 1 second)
+    }
+
+    document.getElementById('start-button').addEventListener('click', function() {
+        // Hide the landing section and show the test section
+        document.getElementById('landing').style.display = 'none';
+        document.getElementById('test').style.display = 'block';
+
+        // Start the countdown
+        var countdown = 3;
+        var countdownInterval = setInterval(function() {
+            countdown -= 1;
+            document.getElementById('countdown').textContent = countdown;
+            
+            if (countdown === 0) {
+                // Stop the countdown
+                clearInterval(countdownInterval);
+                
+                // Hide the countdown and show the speaker icon
+                document.getElementById('countdown').style.display = 'none';
+                document.getElementById('speaker-icon').style.display = 'block';
+                
+                // Generate and play the notes
+                generateNotes();
+                playNotes();
+                displayAnswerButtons();
+            }
+        }, 1000);
+    });
+
+    // Attach the playNotes function to the 'play-button' click event
+    document.getElementById('play-button').addEventListener('click', function() {
+        playNotes();
+    });
+
+    // Generate the notes and play them when the "next" button is clicked (or at the start of the test)
+    document.getElementById('next-button').addEventListener('click', function() {
+        // Hide the "higher", "same" and "lower" buttons and the "next" button
+        document.getElementById('answers').style.display = 'none';
+        document.getElementById('next-button').style.display = 'none';
+        document.getElementById('result').style.display = 'none'; 
+        // Generate and play the notes
+        generateNotes();
+        playNotes();
+        displayAnswerButtons();
+    });
+
+    document.getElementById('main-menu-button').addEventListener('click', function() {
+        // Hide the test section and show the landing section
+        document.getElementById('test').style.display = 'none';
+        document.getElementById('landing').style.display = 'block';
+        
+        // Reset the countdown and hide the speaker icon
+        document.getElementById('countdown').textContent = '3';
+        document.getElementById('countdown').style.display = 'block';
+        document.getElementById('speaker-icon').style.display = 'none';
+
+        // Hide the answer buttons
+        document.getElementById('answers').style.display = 'none';
+        document.getElementById('result').style.display = 'none';
+
+        // Hide the answer buttons and the "next" button
+        document.getElementById('answers').style.display = 'none';
+        document.getElementById('next-button').style.display = 'none';
+
+        // Hide the result symbols
+        correctSpan.style.display = 'none';
+        wrongSpan.style.display = 'none';
+
+        // Reset score
+        totalQuestions = 0;
+        correctAnswers = 0;
+        document.getElementById('score').textContent = 'Your score: 0/0';
+    });
+
+}
+</script>
+</html>
