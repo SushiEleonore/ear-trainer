@@ -64,3 +64,8 @@ button:hover {
     bottom: 20px;
     right: 20px;
 }
+
+#next-button {
+    margin: 20px auto;
+    display: block;
+}
