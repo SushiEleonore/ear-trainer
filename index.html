@@ -104,7 +104,7 @@ window.onload = function() {
 
         // Show the interval (precision) when in Random Mode //
         if (document.getElementById('random-mode').checked && correctAnswer !== 'same') {
-            intervalDisplay.textContent = 'The interval was: ' + interval + ' tone';
+            intervalDisplay.textContent = 'The interval was: ' + interval + ' semitone';
             intervalDisplay.style.display = 'block';
         } else {
             intervalDisplay.style.display = 'none';
@@ -157,7 +157,7 @@ window.onload = function() {
 
     function generateNotes() {
         // Generate the first note's frequency randomly
-        note1Frequency = 440;  // Change this to generate the frequency randomly within the desired range
+        note1Frequency = Math.floor(Math.random() * (440 - 220 + 1)) + 220;  // Select the first note at random
 
         // Decide whether the second note will be the same, higher, or lower
         var randomNumber = Math.floor(Math.random() * 3) + 1;
