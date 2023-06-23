@@ -2,12 +2,12 @@
 <html>
 <head>
     <meta charset="UTF-8"> 
-    <title>Music Hearing Test</title>
+    <title>Ear Challenge</title>
     <link rel="stylesheet" type="text/css" href="styles.css">
 </head>
 <body>
     <div id="landing">
-        <h1>Music Hearing Test</h1>
+        <h1>Ear Challenge</h1>
         <button id="start-button">Start</button>
         <div id="selection">
             <input type="radio" id="random-mode" name="mode" checked onclick="updateMode('random')"> Random mode<br>
@@ -130,13 +130,23 @@ window.onload = function() {
         }
     }
 
-    function playSineWave(frequency, duration) {
+    function playSineWave(frequency, duration, attackTime = 0.1, releaseTime = 0.1) {
         var oscillator = audioContext.createOscillator();
+        var gainNode = audioContext.createGain();
+        
         oscillator.type = 'sine';
         oscillator.frequency.value = frequency;
-        oscillator.connect(audioContext.destination);
-        oscillator.start();
-
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime); // Initial volume: 0
+        gainNode.gain.linearRampToValueAtTime(1, audioContext.currentTime + attackTime); // Fade in (attack)
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        oscillator.start(audioContext.currentTime);
+        
+        // Fade out (release)
+        gainNode.gain.setValueAtTime(1, audioContext.currentTime + (duration/1000) - releaseTime); // Full volume until release
+        gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + (duration/1000)); // Fade out to 0 volume
+        
         // Stop the oscillator after the duration
         setTimeout(function() {
             oscillator.stop();
